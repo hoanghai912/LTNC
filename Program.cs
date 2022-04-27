@@ -67,6 +67,9 @@ namespace ConsoleApplication2
         static double upper_bound = 0;
         const string path_ini = "setting.ini";
         static bool error = false;
+        static string noti = "";
+
+        static Stopwatch time_line = new Stopwatch();
 
         static void Main(string[] args)
         {
@@ -106,6 +109,7 @@ namespace ConsoleApplication2
 
             while (true)
             {
+                
                 string source = getUpdates();
                 Console.WriteLine("Get Updates");
                 string command = getCommand(source);
@@ -113,20 +117,24 @@ namespace ConsoleApplication2
                 {
                     startCommand();
                     Console.WriteLine("Command message");
+                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 }
 
                 string message = getLatesMessage(source);
                 if (message == "Edit lower bound")
                 {
                     editLowerSingle();
+                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 }
                 else if (message == "Edit upper bound")
                 {
                     editUpperSingle();
+                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 }
                 else if (message == "Menu")
                 {
                     startCommand();
+                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 }
                 else if (message == "Toggle warning: ON")
                 {
@@ -148,9 +156,10 @@ namespace ConsoleApplication2
                 callBack_Func(source);
                 if (toggle_warning == true)
                 {
+                    time_line.Start();
                     getWarning();
                 }
-
+                
                 Thread.Sleep(800);
             }
 
@@ -335,7 +344,7 @@ namespace ConsoleApplication2
         {
             string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"Get price of BTC\", \"callback_data\":\"price\"}], [{\"text\":\"Calculate Profit\", \"callback_data\":\"profit\"}], [{\"text\":\"Receive new alert notifications\", \"callback_data\":\"get_warning\"}] ], \"remove_keyboard\":true }";
             sendMessage("This is start message\nPress any buttons bottom to use this bot", optional);
-            getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
         }
 
         static void editMessageInline(string text = "", string optional = "")
@@ -350,13 +359,13 @@ namespace ConsoleApplication2
         static void getLowerBound_UpperBound()
         {
             sendMessage("Price of BTC now is " + getPrice() + "$");
-            getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
 
             var myIni = new IniFile(path_ini);
-            editBound("lower");
+            editBound("LOWER");
             if (!error)
             {
-                editBound("upper");
+                editBound("UPPER");
 
             }
             myIni.Write("Upper", upper_bound.ToString(), chat_id);
@@ -375,7 +384,7 @@ namespace ConsoleApplication2
                 bound_str = getLatesMessage(getUpdates());
                 if (bound_str != "")
                 {
-                    if (bound == "lower")
+                    if (bound == "LOWER")
                     {
                         if (double.TryParse(bound_str, out lower_bound) == true) break;
                         else
@@ -406,15 +415,15 @@ namespace ConsoleApplication2
             if (myIni.KeyExists("Lower", chat_id))
             {
                 sendMessage("Current lower bound is " + myIni.Read("Lower", chat_id));
-                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
 
-            editBound("lower");
+            editBound("LOWER");
             if (error)
             {
                 string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
                 sendMessage("Try again and select any options bellow ⌨️", optional);
-                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 error = false;
                 return;
             }
@@ -428,15 +437,15 @@ namespace ConsoleApplication2
             if (myIni.KeyExists("Upper", chat_id))
             {
                 sendMessage("Current upper bound is " + myIni.Read("Upper", chat_id));
-                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
 
-            editBound("upper");
+            editBound("UPPER");
             if (error)
             {
                 string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
                 sendMessage("Try again and select any options bellow ⌨️", optional);
-                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 error = false;
                 return;
             }
@@ -476,13 +485,36 @@ namespace ConsoleApplication2
             double price = getPrice();
             if (price < lower_bound)
             {
-                sendMessage("Price of BTC is lower than lower bound");
-                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+                time_line.Stop();
+                if (noti == "" || noti == "UPPER" || time_line.ElapsedMilliseconds >= (60 * 1000))
+                {
+                    sendMessage(" ↗️ Price of BTC is LOWER than " + lower_bound + "$");
+                    noti = "LOWER";
+                    time_line = new Stopwatch();
+                }
+
+                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+
             }
             else if (price > upper_bound)
             {
-                sendMessage("Price of BTC is upper than upper bound");
-                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+                if (noti == "" || noti == "LOWER" || time_line.ElapsedMilliseconds >= (60 * 1000))
+                {
+                    sendMessage(" ↘️ Price of BTC is UPPER than " + upper_bound + "$");
+                    noti = "UPPER";
+                    time_line = new Stopwatch();
+                }
+                
+                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            }
+            else
+            {
+                if (noti == "UPPER" || noti == "LOWER")
+                {
+                    sendMessage("Price of BTC is stable now");
+                    noti = "";
+                    time_line = new Stopwatch();
+                }
             }
         }
 
@@ -543,11 +575,11 @@ namespace ConsoleApplication2
             //    }
             //}
 
-            toggle_warning = true;
-            myIni.Write("ToggleWarning", "true", chat_id);
+            //toggle_warning = true;
+            //myIni.Write("ToggleWarning", "true", chat_id);
 
-            if (toggle_warning == true)
-            {
+            //if (toggle_warning == true)
+            //{
                 //
                 getLowerBound_UpperBound();
                 string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: "+getState()+"\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
@@ -559,9 +591,10 @@ namespace ConsoleApplication2
                     optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: OFF\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
                     sendMessage("Try again and Select any options bellow ⌨️", optional);
                 }
-                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+                
+                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 error = false;
-            }
+            //}
         }
 
         static string getChatID(string source)
@@ -587,6 +620,7 @@ namespace ConsoleApplication2
                 }
                 else state = "OFF";
             }
+            
 
             return state;
         }
