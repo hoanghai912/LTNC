@@ -56,118 +56,21 @@ namespace ConsoleApplication2
             return Read(Key, Section).Length > 0;
         }
     }
-    class Program
+
+    class botObj
     {
-        const string api = "5209198819:AAGndggSzo4SPzofLOrq3wuoZiEewVGx96w";
-        static string chat_id = "2095713085";
-        const string url_api = "https://api.telegram.org/bot" + api;
-        static string message_id_bot = "";
-        static bool toggle_warning = false;
-        static double lower_bound = 0;
-        static double upper_bound = 0;
-        const string path_ini = "setting.ini";
-        static bool error = false;
-        static string noti = "";
+        const string key = "5209198819:AAGndggSzo4SPzofLOrq3wuoZiEewVGx96w";
+        const string url_api = "https://api.telegram.org/bot" + key;
+        string message_id_bot = "";
+        bool error = false;
+        int time_wait = 60;
 
-        static Stopwatch time_line = new Stopwatch();
+        static userObj user = new userObj();
 
-        static void Main(string[] args)
-        {
+        DateTime start = DateTime.Now;
 
-            //var myIni = new IniFile(path_ini);
-            //string lowerBound = myIni.Read("upperBound");
-            //double lower = 0;
-            //double.TryParse(lowerBound, out lower);
-            //Console.WriteLine(lower);
 
-            test();
-
-            Console.ReadKey();
-        }
-
-        static void test()
-        {
-            //
-            getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-            ////string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"First Button\", \"callback_data\":\"price\"}], [{\"text\":\"Second Button\", \"callback_data\":\"profit\"}] ] }";
-            ////sendMessage("Caption Message", optional);
-            ////getLatesMessage();
-
-            var myIni = new IniFile(path_ini);
-            if (myIni.KeyExists("ToggleWarning", chat_id))
-            {
-                toggle_warning = Convert.ToBoolean(myIni.Read("ToggleWarning", chat_id));
-            }
-            if (myIni.KeyExists("LowerBound", chat_id))
-            {
-                lower_bound = Convert.ToDouble(myIni.Read("LowerBound", chat_id));
-            }
-            if (myIni.KeyExists("UpperBound", chat_id))
-            {
-                upper_bound = Convert.ToDouble(myIni.Read("UpperBound", chat_id));
-            }
-
-            while (true)
-            {
-                
-                string source = getUpdates();
-                Console.WriteLine("Get Updates");
-                string command = getCommand(source);
-                if (command == "/start")
-                {
-                    startCommand();
-                    Console.WriteLine("Command message");
-                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-                }
-
-                string message = getLatesMessage(source);
-                if (message == "Edit lower bound")
-                {
-                    editLowerSingle();
-                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-                }
-                else if (message == "Edit upper bound")
-                {
-                    editUpperSingle();
-                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-                }
-                else if (message == "Menu")
-                {
-                    startCommand();
-                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-                }
-                else if (message == "Toggle warning: ON")
-                {
-                    toggle_warning = false;
-                    myIni.Write("ToggleWarning", toggle_warning.ToString(), chat_id);
-                    string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
-                    sendMessage("Toggle Warning: OFF", optional);
-                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-                }
-                else if (message == "Toggle warning: OFF")
-                {
-                    toggle_warning = true;
-                    myIni.Write("ToggleWarning", toggle_warning.ToString(), chat_id);
-                    string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
-                    sendMessage("Toggle Warning: ON", optional);
-                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-                }
-
-                callBack_Func(source);
-                if (toggle_warning == true)
-                {
-                    time_line.Start();
-                    getWarning();
-                }
-                
-                Thread.Sleep(800);
-            }
-
-            //sendMessage("test");
-
-        }
-
-        static string getData(string url)
+        private string getData(string url)
         {
             HttpRequest http = new HttpRequest();
             http.Cookies = new CookieDictionary();
@@ -175,16 +78,9 @@ namespace ConsoleApplication2
             string html = http.Get(url).ToString();
 
             return html;
-
         }
 
-        static void TestRun(string path, string html)
-        {
-            File.WriteAllText(path, html);
-            Process.Start(path);
-        }
-
-        static string getUpdates(string offset = "")
+        private string getUpdates(string offset = "")
         {
             string url_update = url_api + "/getUpdates?offset=" + offset;
             HttpRequest http = new HttpRequest();
@@ -194,12 +90,12 @@ namespace ConsoleApplication2
             return result;
         }
 
-        static void getNewUpdatesMess(string update_id)
+        void getNewUpdatesMess(string update_id)
         {
             if (update_id != "") getUpdates((Convert.ToUInt64(update_id) + 1).ToString());
         }
 
-        static string getMessage_Id_bot(string source)
+        string getMessage_Id_bot(string source)
         {
             string message_id;
             Regex reg = new Regex("\"message_id\":(?<message_id>\\d+)");
@@ -211,12 +107,12 @@ namespace ConsoleApplication2
 
         }
 
-        static void sendMessage(string message, string optional = "")
+        void sendMessage(string message, string optional = "")
         {
             HttpRequest http = new HttpRequest();
             http.Cookies = new CookieDictionary();
 
-            string data = "{\"chat_id\":\"" + chat_id + "\", \"text\":\"" + message + "\"," + optional + "}";
+            string data = "{\"chat_id\":\"" + user.Chat_id + "\", \"text\":\"" + message + "\"," + optional + "}";
 
             string url_post = url_api + "/sendMessage";
 
@@ -225,7 +121,7 @@ namespace ConsoleApplication2
             message_id_bot = getMessage_Id_bot(res);
         }
 
-        static string getLatesUpdateID(string source)
+        string getLatesUpdateID(string source)
         {
 
             Regex reg = new Regex("\"update_id\":(?<update_id>\\d+)");
@@ -240,7 +136,7 @@ namespace ConsoleApplication2
 
         }
 
-        static string getLatesMessage(string source)
+        string getLatesMessage(string source)
         {
 
             Regex reg = new Regex("\"text\":\"(?<text>.+)\"");
@@ -255,7 +151,7 @@ namespace ConsoleApplication2
 
         }
 
-        static void getFullPrice(ref double price, ref double high, ref double low, ref double volume, ref double hr24, ref double per24hr)
+        void getFullPrice(ref double price, ref double high, ref double low, ref double volume, ref double hr24, ref double per24hr)
         {
             string url = "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT";
             string source = getData(url);
@@ -292,7 +188,7 @@ namespace ConsoleApplication2
 
         }
 
-        static double getPrice()
+        double getPrice()
         {
             string url = "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT";
             string source = getData(url);
@@ -307,7 +203,7 @@ namespace ConsoleApplication2
             return price;
         }
 
-        static string getCallBackData(string source)
+        string getCallBackData(string source)
         {
 
             Regex reg = new Regex("\"data\":\"(?<callback_data>\\w+)\"");
@@ -325,9 +221,9 @@ namespace ConsoleApplication2
 
         }
 
-        static string getCommand(string source)
+        string getCommand(string source)
         {
-            if (source.Contains("\"id\":")) chat_id = getChatID(source);
+            if (source.Contains("\"id\":")) user.Chat_id = getChatID(source);
             string command = "";
             if (source.Contains("\"type\":\"bot_command\""))
             {
@@ -340,39 +236,40 @@ namespace ConsoleApplication2
             return command;
         }
 
-        static void startCommand()
+        void startCommand()
         {
             string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"Get price of BTC\", \"callback_data\":\"price\"}], [{\"text\":\"Calculate Profit\", \"callback_data\":\"profit\"}], [{\"text\":\"Receive new alert notifications\", \"callback_data\":\"get_warning\"}] ], \"remove_keyboard\":true }";
             sendMessage("This is start message\nPress any buttons bottom to use this bot", optional);
-            //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            getNewUpdatesMess(getLatesUpdateID(getUpdates()));
         }
 
-        static void editMessageInline(string text = "", string optional = "")
+        void editMessageInline(string text = "", string optional = "")
         {
             string url_edit_inline = url_api + "/editMessageText";
-            string data = "{\"chat_id\":\"" + chat_id + "\",\"message_id\":\"" + message_id_bot + "\",\"text\":\"" + text + "\"," + optional + "}";
+            string data = "{\"chat_id\":\"" + user.Chat_id + "\",\"message_id\":\"" + message_id_bot + "\",\"text\":\"" + text + "\"," + optional + "}";
             HttpRequest http = new HttpRequest();
             http.Cookies = new CookieDictionary();
             http.Post(url_edit_inline, data, "application/json");
         }
 
-        static void getLowerBound_UpperBound()
+        void getLowerBound_UpperBound()
         {
             sendMessage("Price of BTC now is " + getPrice() + "$");
             //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
 
-            var myIni = new IniFile(path_ini);
+            var myIni = new IniFile(user.Path_ini);
+
             editBound("LOWER");
             if (!error)
             {
                 editBound("UPPER");
 
             }
-            myIni.Write("Upper", upper_bound.ToString(), chat_id);
-            myIni.Write("Lower", lower_bound.ToString(), chat_id);
+            myIni.Write("Upper", user.Upper_bound.ToString(), user.Chat_id);
+            myIni.Write("Lower", user.Lower_bound.ToString(), user.Chat_id);
         }
 
-        static void editBound(string bound)
+        void editBound(string bound)
         {
             sendMessage("Please send me " + bound + " bound of price BTC you want to watch out (use . to divide number)");
             getNewUpdatesMess(getLatesUpdateID(getUpdates()));
@@ -384,22 +281,31 @@ namespace ConsoleApplication2
                 bound_str = getLatesMessage(getUpdates());
                 if (bound_str != "")
                 {
+                    double tmp;
                     if (bound == "LOWER")
                     {
-                        if (double.TryParse(bound_str, out lower_bound) == true) break;
+                        if (double.TryParse(bound_str, out tmp) == true)
+                        {
+                            user.Lower_bound = tmp;
+                            break;
+                        }
                         else
                         {
-                            
+                            user.Lower_bound = tmp;
                             error = true;
                             break;
                         }
                     }
                     else
                     {
-                        if (double.TryParse(bound_str, out upper_bound) == true) break;
+                        if (double.TryParse(bound_str, out tmp) == true)
+                        {
+                            user.Upper_bound = tmp;
+                            break;
+                        }
                         else
                         {
-                            
+                            user.Upper_bound = tmp;
                             error = true;
                             break;
                         }
@@ -409,12 +315,12 @@ namespace ConsoleApplication2
             }
         }
 
-        static void editLowerSingle()
+        void editLowerSingle()
         {
-            var myIni = new IniFile(path_ini);
-            if (myIni.KeyExists("Lower", chat_id))
+            var myIni = new IniFile(user.Path_ini);
+            if (myIni.KeyExists("Lower", user.Chat_id))
             {
-                sendMessage("Current lower bound is " + myIni.Read("Lower", chat_id));
+                sendMessage("Current lower bound is " + myIni.Read("Lower", user.Chat_id));
                 //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
 
@@ -427,16 +333,16 @@ namespace ConsoleApplication2
                 error = false;
                 return;
             }
-            else myIni.Write("Lower", lower_bound.ToString(), chat_id);
+            else myIni.Write("Lower", user.Lower_bound.ToString(), user.Chat_id);
 
         }
 
-        static void editUpperSingle()
+        void editUpperSingle()
         {
-            var myIni = new IniFile(path_ini);
-            if (myIni.KeyExists("Upper", chat_id))
+            var myIni = new IniFile(user.Path_ini);
+            if (myIni.KeyExists("Upper", user.Chat_id))
             {
-                sendMessage("Current upper bound is " + myIni.Read("Upper", chat_id));
+                sendMessage("Current upper bound is " + myIni.Read("Upper", user.Chat_id));
                 //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
 
@@ -449,11 +355,11 @@ namespace ConsoleApplication2
                 error = false;
                 return;
             }
-            else myIni.Write("Upper", upper_bound.ToString(), chat_id);
+            else myIni.Write("Upper", user.Upper_bound.ToString(), user.Chat_id);
 
         }
 
-        static void callBack_Func(string source)
+        void callBack_Func(string source)
         {
             string callback_data = getCallBackData(source);
             if (callback_data == "") return;
@@ -479,151 +385,362 @@ namespace ConsoleApplication2
             }
         }
 
-        static void getWarning()
+        void getWarning()
         {
-            if (lower_bound == 0 || upper_bound == 0) return;
+            if (user.Lower_bound == 0 || user.Upper_bound == 0) return;
             double price = getPrice();
-            if (price < lower_bound)
+            double time = Convert.ToDouble(DateTime.Now.Subtract(start).TotalMilliseconds);
+            if (price < user.Lower_bound)
             {
-                time_line.Stop();
-                if (noti == "" || noti == "UPPER" || time_line.ElapsedMilliseconds >= (60 * 1000))
+                if (user.Noti == "" || user.Noti == "UPPER" || (user.Noti == "LOWER" && time >= (time_wait * 1000)))
                 {
-                    sendMessage(" ↗️ Price of BTC is LOWER than " + lower_bound + "$");
-                    noti = "LOWER";
-                    time_line = new Stopwatch();
+                    sendMessage(" ↘️ Price of BTC is LOWER than " + user.Lower_bound + "$");
+                    user.Noti = "LOWER";
+                    start = DateTime.Now;
+                    Console.WriteLine("Lower notification");
                 }
 
                 //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
 
             }
-            else if (price > upper_bound)
+            else if (price > user.Upper_bound)
             {
-                if (noti == "" || noti == "LOWER" || time_line.ElapsedMilliseconds >= (60 * 1000))
+                if (user.Noti == "" || user.Noti == "LOWER" || (user.Noti == "UPPER" && time >= (time_wait * 1000)))
                 {
-                    sendMessage(" ↘️ Price of BTC is UPPER than " + upper_bound + "$");
-                    noti = "UPPER";
-                    time_line = new Stopwatch();
+                    sendMessage(" ↗️ Price of BTC is UPPER than " + user.Upper_bound + "$");
+                    user.Noti = "UPPER";
+                    start = DateTime.Now;
+                    Console.WriteLine("Upper notification");
                 }
-                
+
                 //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
             else
             {
-                if (noti == "UPPER" || noti == "LOWER")
+                if (user.Noti == "UPPER" || user.Noti == "LOWER")
                 {
                     sendMessage("Price of BTC is stable now");
-                    noti = "";
-                    time_line = new Stopwatch();
+                    user.Noti = "";
+                    start = DateTime.Now;
+                    Console.WriteLine("Stable notification");
                 }
             }
         }
 
-        static void price_callBack(string source)
+        void price_callBack(string source)
         {
             double price = 0, high = 0, low = 0, volume = 0, hr24 = 0, per24hr = 0;
             getFullPrice(ref price, ref high, ref low, ref volume, ref hr24, ref per24hr);
+
             string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"Back to menu\", \"callback_data\":\"back_menu\"}] ] }";
-            editMessageInline("**Trading on Binance** :\n 💲 Price of BTC: " + price + "$\n 🚀 24hr: "+hr24+ "$  "+per24hr+"%\n 📈 Highest 24h: " + high + "$\n 📉 Lowest 24h: " + low + "$\n 📊 Volume BTC in 24h: " + volume + " BTC", optional);
+            editMessageInline("**Trading on Binance** :\n 💲 Price of BTC: " + price + "$\n 🚀 24hr: " + hr24 + "$  " + per24hr + "%\n 📈 Highest 24h: " + high + "$\n 📉 Lowest 24h: " + low + "$\n 📊 Volume BTC in 24h: " + volume + " BTC", optional);
+
             getNewUpdatesMess(getLatesUpdateID(source));
             Console.WriteLine("Price callback");
         }
 
-        static void profit_callBack(string source)
+        void profit_callBack(string source)
         {
             //
-
+            getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"Back to menu\", \"callback_data\":\"back_menu\"}] ] }";
-            editMessageInline("Profit up to now is 5000$", optional);
+            //editMessageInline("Profit up to now is 5000$", optional);
+
+            sendMessage("Please send the amount of BTC you have");
+            string btc_str = "";
+            while (true)
+            {
+                btc_str = getLatesMessage(getUpdates());
+                if (btc_str != "")
+                {
+                    double tmp = 0;
+                    if (Double.TryParse(btc_str, out tmp) == true)
+                    {
+                        user.Btc = tmp;
+                        double price = getPrice();
+                        sendMessage("Profit up to now: " + price * user.Btc + "$");
+                        startCommand();
+                        break;
+                    }
+                    else
+                    {
+                        sendMessage("Try again", optional);
+                        break;
+                    }
+                }
+            }
+
             Console.WriteLine("Profit callback");
             getNewUpdatesMess(getLatesUpdateID(source));
 
         }
 
-        static void backMenu_callBack()
+        void backMenu_callBack()
         {
             //
 
-            string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"Get price of BTC\", \"callback_data\":\"price\"}], [{\"text\":\"Calculate Profit\", \"callback_data\":\"profit\"}], [{\"text\":\"Receive new alert notifications\", \"callback_data\":\"get_warning\"}] ] }, \"remove_keyboard\":\"true\"";
+            string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"Get price of BTC\", \"callback_data\":\"price\"}], [{\"text\":\"Calculate Profit\", \"callback_data\":\"profit\"}], [{\"text\":\"Receive new alert notifications\", \"callback_data\":\"get_warning\"}] ] }";
 
             editMessageInline("This is start message\nPress any buttons bottom to use this bot", optional);
             Console.WriteLine("Back to menu callback");
             getNewUpdatesMess(getLatesUpdateID(getUpdates()));
         }
 
-        static void getWarning_callBack(string source)
+        void getWarning_callBack(string source)
         {
             //
-            var myIni = new IniFile(path_ini);
-
+            Console.WriteLine("Get Warning callback");
+            var myIni = new IniFile(user.Path_ini);
             string chat_id = getChatID(source);
+
+
             //if (myIni.KeyExists("ToggleWarning", chat_id))
             //{
-            //    toggle_warning = Convert.ToBoolean(myIni.Read("ToggleWarning", chat_id));
+            //    user.Toggle_warning = Convert.ToBoolean(myIni.Read("ToggleWarning", chat_id));
             //}
 
             //else
             //{
-            //    if (toggle_warning == false)
+            //    if (user.Toggle_warning == false)
             //    {
-            //        toggle_warning = true;
+            //        user.Toggle_warning = true;
             //        myIni.Write("ToggleWarning", "true", chat_id);
             //    }
             //    else
             //    {
-            //        toggle_warning = false;
+            //        user.Toggle_warning = false;
             //        myIni.Write("ToggleWarning", "false", chat_id);
             //    }
             //}
 
-            //toggle_warning = true;
+            //user.Toggle_warning = true;
             //myIni.Write("ToggleWarning", "true", chat_id);
 
-            //if (toggle_warning == true)
+            //if (user.Toggle_warning == true)
             //{
-                //
-                getLowerBound_UpperBound();
-                string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: "+getState()+"\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
-                if (!error) sendMessage("Success. Select any options bellow ⌨️", optional);
-                else
-                {
-                    toggle_warning = false;
-                    myIni.Write("ToggleWarning", "false", chat_id);
-                    optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: OFF\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
-                    sendMessage("Try again and Select any options bellow ⌨️", optional);
-                }
-                
-                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-                error = false;
+            //
+            getLowerBound_UpperBound();
+            string optional;
+            if (!error)
+            {
+                user.Toggle_warning = true;
+                optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
+                sendMessage("Success. Select any options bellow ⌨️", optional);
+            }
+            else
+            {
+                user.Toggle_warning = false;
+                //myIni.Write("ToggleWarning", "false", chat_id);
+                optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: OFF\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
+                sendMessage("Try again and Select any options bellow ⌨️", optional);
+            }
+
+            //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            error = false;
             //}
         }
 
-        static string getChatID(string source)
+        string getChatID(string source)
         {
             Regex reg = new Regex("\"id\":(?<id>\\d+)");
             Match res = reg.Match(source);
             string id = res.Groups["id"].ToString();
 
             return id;
-            
+
 
         }
 
-        static string getState()
+        string getState()
         {
-            string state = "OFF";
-            var myIni = new IniFile(path_ini);
-            if (myIni.KeyExists("ToggleWarning", chat_id))
+            if (user.Toggle_warning == true) return "ON";
+            else return "OFF";
+
+        }
+
+        void doMessage(string message)
+        {
+            if (message == "Edit lower bound")
             {
-                if (myIni.Read("ToggleWarning", chat_id) == "True")
-                {
-                    state = "ON";
-                }
-                else state = "OFF";
+                editLowerSingle();
+                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            }
+            else if (message == "Edit upper bound")
+            {
+                editUpperSingle();
+                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            }
+            else if (message == "Menu")
+            {
+                startCommand();
+                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            }
+            else if (message == "Toggle warning: ON")
+            {
+                user.Toggle_warning = false;
+                //myIni.Write("ToggleWarning", user.Toggle_warning.ToString(), chat_id);
+                string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
+                sendMessage("Toggle Warning: OFF", optional);
+                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            }
+            else if (message == "Toggle warning: OFF")
+            {
+                user.Toggle_warning = true;
+                //myIni.Write("ToggleWarning", user.Toggle_warning.ToString(), chat_id);
+                string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
+                sendMessage("Toggle Warning: ON", optional);
+                getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
             
-
-            return state;
         }
+
+        void test()
+        {
+            //
+            getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+            ////string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"First Button\", \"callback_data\":\"price\"}], [{\"text\":\"Second Button\", \"callback_data\":\"profit\"}] ] }";
+            ////sendMessage("Caption Message", optional);
+            ////getLatesMessage();
+
+            var myIni = new IniFile(user.Path_ini);
+            if (myIni.KeyExists("Lower", user.Chat_id))
+            {
+                user.Lower_bound = Convert.ToDouble(myIni.Read("Lower", user.Chat_id));
+            }
+            if (myIni.KeyExists("Upper", user.Chat_id))
+            {
+                user.Upper_bound = Convert.ToDouble(myIni.Read("Upper", user.Chat_id));
+            }
+
+            while (true)
+            {
+
+                string source = getUpdates();
+                Console.WriteLine("Get Updates");
+                string command = getCommand(source);
+                if (command == "/start")
+                {
+                    startCommand();
+                    Console.WriteLine("Command message");
+                    getNewUpdatesMess(getLatesUpdateID(getUpdates()));
+                }
+
+                string message = getLatesMessage(source);
+                doMessage(message);
+
+                callBack_Func(source);
+                if (user.Toggle_warning == true)
+                {
+                    getWarning();
+                }
+
+                Thread.Sleep(800);
+            }
+
+            //sendMessage("test");
+
+        }
+
+        public void run()
+        {
+            test();
+        }
+
+
+    }
+
+    class userObj
+    {
+        string chat_id = "";
+        bool toggle_warning = false;
+        double lower_bound = 0;
+        double upper_bound = 0;
+        string path_ini = "setting.ini";
+        string noti = "";
+        double btc = 0;
+
+        public string Chat_id
+        {
+            get { return chat_id; }
+            set { chat_id = value; }
+        }
+
+        public bool Toggle_warning
+        {
+            get { return toggle_warning; }
+            set { toggle_warning = value; }
+        }
+
+        public double Lower_bound
+        {
+            get { return lower_bound; }
+            set { lower_bound = value; }
+        }
+
+        public double Upper_bound
+        {
+            get { return upper_bound; }
+            set { upper_bound = value; }
+        }
+
+        public string Noti
+        {
+            get { return noti; }
+            set { noti = value; }
+
+        }
+
+        public string Path_ini
+        {
+            get { return path_ini; }
+            set { path_ini = value; }
+        }
+
+        public double Btc
+        {
+            get { return btc; }
+            set { btc = value; }
+        }
+    }
+
+    class Program 
+    {
+        //const string api = "5209198819:AAGndggSzo4SPzofLOrq3wuoZiEewVGx96w";
+        //static string chat_id = ""; // 2095713085
+        //const string url_api = "https://api.telegram.org/bot" + api;
+        //static string message_id_bot = "";
+        //static bool toggle_warning = false;
+        //static double lower_bound = 0;
+        //static double upper_bound = 0;
+        //const string path_ini = "setting.ini";
+        //static bool error = false;
+        //static string noti = "";
+
+        //static botObj bot = new botObj();
+        //static userObj user = new userObj();
+
+
+
+        //static Stopwatch time_line = new Stopwatch();
+
+        static void Main(string[] args)
+        {
+
+            //var myIni = new IniFile(path_ini);
+            //string lowerBound = myIni.Read("upperBound");
+            //double lower = 0;
+            //double.TryParse(lowerBound, out lower);
+            //Console.WriteLine(lower);
+
+            botObj bot = new botObj();
+            bot.run();
+
+            Console.ReadKey();
+        }
+
+        
+
+        
 
     }
 
