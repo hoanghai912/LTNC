@@ -13,7 +13,7 @@ using System.Runtime.InteropServices;
 
 namespace ConsoleApplication2
 {
-    class IniFile
+    class IniFile // Class quản lý các file cài đặt Bot
     {
         string Path;
         string EXE = Assembly.GetExecutingAssembly().GetName().Name;
@@ -56,8 +56,7 @@ namespace ConsoleApplication2
             return Read(Key, Section).Length > 0;
         }
     }
-
-    class botObj
+    class botObj // Class quản lý các thuộc tính và phương thức của Bot
     {
         const string key = "5209198819:AAGndggSzo4SPzofLOrq3wuoZiEewVGx96w";
         const string url_api = "https://api.telegram.org/bot" + key;
@@ -69,7 +68,7 @@ namespace ConsoleApplication2
 
         DateTime start = DateTime.Now;
 
-
+        /// Trả về dữ liệu lấy được từ đường link url theo phương thức get
         private string getData(string url)
         {
             HttpRequest http = new HttpRequest();
@@ -80,21 +79,25 @@ namespace ConsoleApplication2
             return html;
         }
 
+        /// Trả về dữ liệu được cập nhật từ Bot qua đường link url_update 
+        /// theo phương thức get với tham số là chuỗi offset
         private string getUpdates(string offset = "")
         {
             string url_update = url_api + "/getUpdates?offset=" + offset;
             HttpRequest http = new HttpRequest();
             http.Cookies = new CookieDictionary();
             string result = http.Get(url_update).ToString();
-
+    
             return result;
         }
 
+        /// Cập nhật dữ liệu mới nhất theo tham số update_id
         void getNewUpdatesMess(string update_id)
         {
             if (update_id != "") getUpdates((Convert.ToUInt64(update_id) + 1).ToString());
         }
 
+        /// Trả về message_id được xử lý Regex từ chuỗi source
         string getMessage_Id_bot(string source)
         {
             string message_id;
@@ -102,11 +105,12 @@ namespace ConsoleApplication2
             Match res = reg.Match(source);
 
             message_id = res.Groups["message_id"].ToString();
-
+            
             return message_id;
-
         }
 
+        /// Gửi tin nhắn thông qua Bot 
+        /// Tham số message: Nội dung tin nhắn; Tham số optional: Tùy chọn kèm theo 
         void sendMessage(string message, string optional = "")
         {
             HttpRequest http = new HttpRequest();
@@ -121,9 +125,9 @@ namespace ConsoleApplication2
             message_id_bot = getMessage_Id_bot(res);
         }
 
+        /// Trả về update_id mới nhất lấy từ tham số source bằng Regex
         string getLatesUpdateID(string source)
         {
-
             Regex reg = new Regex("\"update_id\":(?<update_id>\\d+)");
 
             MatchCollection res = reg.Matches(source);
@@ -133,12 +137,11 @@ namespace ConsoleApplication2
             if (length == 0) return "";
 
             return res[length - 1].Groups["update_id"].ToString();
-
         }
 
+        /// Trả về tin nhắn được gửi gần nhất lấy từ tham số source bằng Regex
         string getLatesMessage(string source)
         {
-
             Regex reg = new Regex("\"text\":\"(?<text>.+)\"");
 
             MatchCollection res = reg.Matches(source);
@@ -148,9 +151,11 @@ namespace ConsoleApplication2
             if (length == 0) return "";
 
             return res[length - 1].Groups["text"].ToString();
-
         }
 
+        /// Xử lý dữ liệu source lấy từ hàm getData() nhằm lấy ra các thông tin về Bitcoin:
+        /// Giá hiện tại, giá nhỏ và lớn nhất trong vòng 24h, biên độ giá trong vòng 24h và khối lượng BTC giao dịch trong 24h.
+        /// Dữ liệu được lấy từ API của Binance
         void getFullPrice(ref double price, ref double high, ref double low, ref double volume, ref double hr24, ref double per24hr)
         {
             string url = "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT";
@@ -162,20 +167,11 @@ namespace ConsoleApplication2
             string price_str = res.Groups["price"].ToString();
             if (price_str != "") price = Convert.ToDouble(price_str);
 
-            //reg = new Regex("\"high\":\"(?<high>\\d+\\.\\d+)\"");
-            //res = reg.Match(source);
-
             string high_str = res.Groups["high"].ToString();
             if (high_str != "") high = Convert.ToDouble(high_str);
 
-            //reg = new Regex("\"low\":\"(?<low>\\d+\\.\\d+)\"");
-            //res = reg.Match(source);
-
             string low_str = res.Groups["low"].ToString();
             if (low_str != "") low = Convert.ToDouble(low_str);
-
-            //reg = new Regex("\"volume\":\"(?<volume>\\d+\\.\\d+)\"");
-            //res = reg.Match(source);
 
             string volume_str = res.Groups["volume"].ToString();
             if (volume_str != "") volume = Convert.ToDouble(volume_str);
@@ -185,9 +181,10 @@ namespace ConsoleApplication2
 
             string per24hr_str = res.Groups["per24hr"].ToString();
             if (per24hr_str != "") per24hr = Convert.ToDouble(per24hr_str);
-
         }
 
+        /// Trả về giá hiện tại của Bitcoin 
+        /// Dữ liệu được lấy từ API của Binance
         double getPrice()
         {
             string url = "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT";
@@ -199,13 +196,14 @@ namespace ConsoleApplication2
 
             string price_str = res.Groups["price"].ToString();
             if (price_str != "") price = Convert.ToDouble(price_str);
-
+            
             return price;
         }
 
+        /// Trả về chuỗi callback_data lấy từ tham số source
+        /// để kiểm tra Bot thực hiện chức năng nào
         string getCallBackData(string source)
         {
-
             Regex reg = new Regex("\"data\":\"(?<callback_data>\\w+)\"");
             MatchCollection res = reg.Matches(source);
 
@@ -215,12 +213,11 @@ namespace ConsoleApplication2
                 return "";
             }
             string callback_data = res[res.Count - 1].Groups["callback_data"].ToString();
-            //Console.WriteLine(callback_data);
 
             return callback_data;
-
         }
 
+        /// Trả về lệnh được gửi cho Bot qua Telegram
         string getCommand(string source)
         {
             if (source.Contains("\"id\":")) user.Chat_id = getChatID(source);
@@ -232,10 +229,11 @@ namespace ConsoleApplication2
 
                 command = res.Groups["command"].ToString();
             }
-
+            
             return command;
         }
 
+        /// Gửi tin nhắn mặc định cùng với Inline Keyboard
         void startCommand()
         {
             string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"Get price of BTC\", \"callback_data\":\"price\"}], [{\"text\":\"Calculate Profit\", \"callback_data\":\"profit\"}], [{\"text\":\"Receive new alert notifications\", \"callback_data\":\"get_warning\"}] ], \"remove_keyboard\":true }";
@@ -243,6 +241,7 @@ namespace ConsoleApplication2
             getNewUpdatesMess(getLatesUpdateID(getUpdates()));
         }
 
+        /// Chỉnh sửa thông tin Inline Keyboard
         void editMessageInline(string text = "", string optional = "")
         {
             string url_edit_inline = url_api + "/editMessageText";
@@ -252,10 +251,10 @@ namespace ConsoleApplication2
             http.Post(url_edit_inline, data, "application/json");
         }
 
+        /// Lấy thông tin về cận trên và dưới của giá Bitcoin
         void getLowerBound_UpperBound()
         {
             sendMessage("Price of BTC now is " + getPrice() + "$");
-            //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
 
             var myIni = new IniFile(user.Path_ini);
 
@@ -269,11 +268,12 @@ namespace ConsoleApplication2
             myIni.Write("Lower", user.Lower_bound.ToString(), user.Chat_id);
         }
 
+        /// Lấy giá trị cận trên và dưới của giá BTC do người dùng nhập
+        /// Tham số bound xác định là cận trên hay dưới
         void editBound(string bound)
         {
             sendMessage("Please send me " + bound + " bound of price BTC you want to watch out (use . to divide number)");
             getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-
             string bound_str = "";
 
             while (bound_str == "")
@@ -310,18 +310,17 @@ namespace ConsoleApplication2
                             break;
                         }
                     }
-
                 }
             }
         }
 
+        /// Chỉnh sửa cận dưới của giá Bitcoin
         void editLowerSingle()
         {
             var myIni = new IniFile(user.Path_ini);
             if (myIni.KeyExists("Lower", user.Chat_id))
             {
                 sendMessage("Current lower bound is " + myIni.Read("Lower", user.Chat_id));
-                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
 
             editBound("LOWER");
@@ -329,21 +328,19 @@ namespace ConsoleApplication2
             {
                 string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
                 sendMessage("Try again and select any options bellow ⌨️", optional);
-                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 error = false;
                 return;
             }
             else myIni.Write("Lower", user.Lower_bound.ToString(), user.Chat_id);
-
         }
 
+        /// Chỉnh sửa cận trên của giá Bitcoin
         void editUpperSingle()
         {
             var myIni = new IniFile(user.Path_ini);
             if (myIni.KeyExists("Upper", user.Chat_id))
             {
                 sendMessage("Current upper bound is " + myIni.Read("Upper", user.Chat_id));
-                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
 
             editBound("UPPER");
@@ -351,14 +348,13 @@ namespace ConsoleApplication2
             {
                 string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
                 sendMessage("Try again and select any options bellow ⌨️", optional);
-                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 error = false;
                 return;
             }
             else myIni.Write("Upper", user.Upper_bound.ToString(), user.Chat_id);
-
         }
 
+        /// Kiểm tra callback_data ứng với chức năng nào của Bot
         void callBack_Func(string source)
         {
             string callback_data = getCallBackData(source);
@@ -367,7 +363,6 @@ namespace ConsoleApplication2
             if (callback_data == "price")
             {
                 price_callBack(source);
-
             }
             else if (callback_data == "profit")
             {
@@ -385,6 +380,8 @@ namespace ConsoleApplication2
             }
         }
 
+        /// Nhận thông báo về giá của Bitcoin sau mỗi 60s
+        /// Gửi thông báo nếu giá nhỏ hơn cận dưới, lớn hơn cận trên hoặc ổn định
         void getWarning()
         {
             if (user.Lower_bound == 0 || user.Upper_bound == 0) return;
@@ -400,8 +397,6 @@ namespace ConsoleApplication2
                     Console.WriteLine("Lower notification");
                 }
 
-                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-
             }
             else if (price > user.Upper_bound)
             {
@@ -412,8 +407,6 @@ namespace ConsoleApplication2
                     start = DateTime.Now;
                     Console.WriteLine("Upper notification");
                 }
-
-                //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
             else
             {
@@ -427,6 +420,7 @@ namespace ConsoleApplication2
             }
         }
 
+        /// Thông báo các thông tin liên quan về giá của Bitcoin
         void price_callBack(string source)
         {
             double price = 0, high = 0, low = 0, volume = 0, hr24 = 0, per24hr = 0;
@@ -439,12 +433,11 @@ namespace ConsoleApplication2
             Console.WriteLine("Price callback");
         }
 
+        /// Tính toán lợi nhuận từ số Bitcoin người dùng nhập
         void profit_callBack(string source)
         {
-            //
             getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"Back to menu\", \"callback_data\":\"back_menu\"}] ] }";
-            //editMessageInline("Profit up to now is 5000$", optional);
 
             sendMessage("Please send the amount of BTC you have");
             string btc_str = "";
@@ -472,13 +465,11 @@ namespace ConsoleApplication2
 
             Console.WriteLine("Profit callback");
             getNewUpdatesMess(getLatesUpdateID(source));
-
         }
 
+        /// In ra menu
         void backMenu_callBack()
         {
-            //
-
             string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"Get price of BTC\", \"callback_data\":\"price\"}], [{\"text\":\"Calculate Profit\", \"callback_data\":\"profit\"}], [{\"text\":\"Receive new alert notifications\", \"callback_data\":\"get_warning\"}] ] }";
 
             editMessageInline("This is start message\nPress any buttons bottom to use this bot", optional);
@@ -486,39 +477,14 @@ namespace ConsoleApplication2
             getNewUpdatesMess(getLatesUpdateID(getUpdates()));
         }
 
+        /// Cảnh báo về giá của Bitcoin thông qua 2 cận
+        /// In ra Keyboard để điều chỉnh thông tin liên quan tới giá BTC, tắt hay bật thông báo hoặc in ra Menu
         void getWarning_callBack(string source)
         {
-            //
             Console.WriteLine("Get Warning callback");
             var myIni = new IniFile(user.Path_ini);
             string chat_id = getChatID(source);
 
-
-            //if (myIni.KeyExists("ToggleWarning", chat_id))
-            //{
-            //    user.Toggle_warning = Convert.ToBoolean(myIni.Read("ToggleWarning", chat_id));
-            //}
-
-            //else
-            //{
-            //    if (user.Toggle_warning == false)
-            //    {
-            //        user.Toggle_warning = true;
-            //        myIni.Write("ToggleWarning", "true", chat_id);
-            //    }
-            //    else
-            //    {
-            //        user.Toggle_warning = false;
-            //        myIni.Write("ToggleWarning", "false", chat_id);
-            //    }
-            //}
-
-            //user.Toggle_warning = true;
-            //myIni.Write("ToggleWarning", "true", chat_id);
-
-            //if (user.Toggle_warning == true)
-            //{
-            //
             getLowerBound_UpperBound();
             string optional;
             if (!error)
@@ -530,34 +496,29 @@ namespace ConsoleApplication2
             else
             {
                 user.Toggle_warning = false;
-                //myIni.Write("ToggleWarning", "false", chat_id);
                 optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: OFF\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
                 sendMessage("Try again and Select any options bellow ⌨️", optional);
             }
-
-            //getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             error = false;
-            //}
         }
 
+        /// Trả về chat ID
         string getChatID(string source)
         {
             Regex reg = new Regex("\"id\":(?<id>\\d+)");
             Match res = reg.Match(source);
             string id = res.Groups["id"].ToString();
-
             return id;
-
-
         }
 
+        /// Trả về trạng thái của thông báo (Bật hay Tắt)
         string getState()
         {
             if (user.Toggle_warning == true) return "ON";
             else return "OFF";
-
         }
 
+        /// Kiểm tra tham số message để thực hiện chức năng tương ứng
         void doMessage(string message)
         {
             if (message == "Edit lower bound")
@@ -578,7 +539,6 @@ namespace ConsoleApplication2
             else if (message == "Toggle warning: ON")
             {
                 user.Toggle_warning = false;
-                //myIni.Write("ToggleWarning", user.Toggle_warning.ToString(), chat_id);
                 string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
                 sendMessage("Toggle Warning: OFF", optional);
                 getNewUpdatesMess(getLatesUpdateID(getUpdates()));
@@ -586,21 +546,16 @@ namespace ConsoleApplication2
             else if (message == "Toggle warning: OFF")
             {
                 user.Toggle_warning = true;
-                //myIni.Write("ToggleWarning", user.Toggle_warning.ToString(), chat_id);
                 string optional = "\"reply_markup\": { \"keyboard\": [ [ { \"text\": \"Toggle warning: " + getState() + "\" } ], [ { \"text\": \"Edit lower bound\" } ], [ { \"text\": \"Edit upper bound\" } ], [ { \"text\": \"Menu\" } ] ] }";
                 sendMessage("Toggle Warning: ON", optional);
                 getNewUpdatesMess(getLatesUpdateID(getUpdates()));
             }
-            
         }
 
-        void test()
+        /// Khởi tạo và thực hiện các chức năng của Bot
+        void run()
         {
-            //
             getNewUpdatesMess(getLatesUpdateID(getUpdates()));
-            ////string optional = "\"reply_markup\": { \"inline_keyboard\": [ [{\"text\":\"First Button\", \"callback_data\":\"price\"}], [{\"text\":\"Second Button\", \"callback_data\":\"profit\"}] ] }";
-            ////sendMessage("Caption Message", optional);
-            ////getLatesMessage();
 
             var myIni = new IniFile(user.Path_ini);
             if (myIni.KeyExists("Lower", user.Chat_id))
@@ -611,10 +566,8 @@ namespace ConsoleApplication2
             {
                 user.Upper_bound = Convert.ToDouble(myIni.Read("Upper", user.Chat_id));
             }
-
             while (true)
             {
-
                 string source = getUpdates();
                 Console.WriteLine("Get Updates");
                 string command = getCommand(source);
@@ -624,32 +577,22 @@ namespace ConsoleApplication2
                     Console.WriteLine("Command message");
                     getNewUpdatesMess(getLatesUpdateID(getUpdates()));
                 }
-
                 string message = getLatesMessage(source);
                 doMessage(message);
-
                 callBack_Func(source);
                 if (user.Toggle_warning == true)
                 {
                     getWarning();
                 }
-
                 Thread.Sleep(800);
             }
-
-            //sendMessage("test");
-
         }
-
-        public void run()
+        public void test()
         {
-            test();
+            run();
         }
-
-
     }
-
-    class userObj
+    class userObj // Class quản lý các thông tin của người dùng
     {
         string chat_id = "";
         bool toggle_warning = false;
@@ -658,44 +601,36 @@ namespace ConsoleApplication2
         string path_ini = "setting.ini";
         string noti = "";
         double btc = 0;
-
         public string Chat_id
         {
             get { return chat_id; }
             set { chat_id = value; }
         }
-
         public bool Toggle_warning
         {
             get { return toggle_warning; }
             set { toggle_warning = value; }
         }
-
         public double Lower_bound
         {
             get { return lower_bound; }
             set { lower_bound = value; }
         }
-
         public double Upper_bound
         {
             get { return upper_bound; }
             set { upper_bound = value; }
         }
-
         public string Noti
         {
             get { return noti; }
             set { noti = value; }
-
         }
-
         public string Path_ini
         {
             get { return path_ini; }
             set { path_ini = value; }
         }
-
         public double Btc
         {
             get { return btc; }
@@ -703,46 +638,13 @@ namespace ConsoleApplication2
         }
     }
 
-    class Program 
+    class Program
     {
-        //const string api = "5209198819:AAGndggSzo4SPzofLOrq3wuoZiEewVGx96w";
-        //static string chat_id = ""; // 2095713085
-        //const string url_api = "https://api.telegram.org/bot" + api;
-        //static string message_id_bot = "";
-        //static bool toggle_warning = false;
-        //static double lower_bound = 0;
-        //static double upper_bound = 0;
-        //const string path_ini = "setting.ini";
-        //static bool error = false;
-        //static string noti = "";
-
-        //static botObj bot = new botObj();
-        //static userObj user = new userObj();
-
-
-
-        //static Stopwatch time_line = new Stopwatch();
-
         static void Main(string[] args)
         {
-
-            //var myIni = new IniFile(path_ini);
-            //string lowerBound = myIni.Read("upperBound");
-            //double lower = 0;
-            //double.TryParse(lowerBound, out lower);
-            //Console.WriteLine(lower);
-
             botObj bot = new botObj();
-            bot.run();
-
+            bot.test();
             Console.ReadKey();
         }
-
-        
-
-        
-
     }
-
-
 }
