@@ -13,7 +13,13 @@ using System.Runtime.InteropServices;
 
 namespace ConsoleApplication2
 {
-    class IniFile // Class quản lý các file cài đặt Bot
+    /* Class quản lý các file cài đặt Bot
+     * Các phương thức sử dụng:
+     * Read: Đọc value từ key và section (nếu có)
+     * Write: Ghi giá trị của cặp key = value vào section (nếu có)
+     * KeyExits: Kiểm tra một key có tồn tại hay không trong một section (nếu có)
+     **/
+    class IniFile 
     {
         string Path;
         string EXE = Assembly.GetExecutingAssembly().GetName().Name;
@@ -56,7 +62,11 @@ namespace ConsoleApplication2
             return Read(Key, Section).Length > 0;
         }
     }
-    class botObj // Class quản lý các thuộc tính và phương thức của Bot
+
+    /*
+     * Class quản lý các thuộc tính và phương thức của Bot
+     * */
+    class botObj
     {
         const string key = "5209198819:AAGndggSzo4SPzofLOrq3wuoZiEewVGx96w";
         const string url_api = "https://api.telegram.org/bot" + key;
@@ -87,7 +97,7 @@ namespace ConsoleApplication2
             HttpRequest http = new HttpRequest();
             http.Cookies = new CookieDictionary();
             string result = http.Get(url_update).ToString();
-    
+
             return result;
         }
 
@@ -105,7 +115,7 @@ namespace ConsoleApplication2
             Match res = reg.Match(source);
 
             message_id = res.Groups["message_id"].ToString();
-            
+
             return message_id;
         }
 
@@ -115,7 +125,6 @@ namespace ConsoleApplication2
         {
             HttpRequest http = new HttpRequest();
             http.Cookies = new CookieDictionary();
-
             string data = "{\"chat_id\":\"" + user.Chat_id + "\", \"text\":\"" + message + "\"," + optional + "}";
 
             string url_post = url_api + "/sendMessage";
@@ -196,7 +205,7 @@ namespace ConsoleApplication2
 
             string price_str = res.Groups["price"].ToString();
             if (price_str != "") price = Convert.ToDouble(price_str);
-            
+
             return price;
         }
 
@@ -229,7 +238,7 @@ namespace ConsoleApplication2
 
                 command = res.Groups["command"].ToString();
             }
-            
+
             return command;
         }
 
@@ -264,6 +273,13 @@ namespace ConsoleApplication2
                 editBound("UPPER");
 
             }
+
+            if (user.Lower_bound >= user.Upper_bound)
+            {
+                sendMessage("🛑 Lower bound can't be greater than or equal to Upper bound 🛑");
+                error = true;
+            }
+
             myIni.Write("Upper", user.Upper_bound.ToString(), user.Chat_id);
             myIni.Write("Lower", user.Lower_bound.ToString(), user.Chat_id);
         }
@@ -592,7 +608,11 @@ namespace ConsoleApplication2
             run();
         }
     }
-    class userObj // Class quản lý các thông tin của người dùng
+    
+    /*
+     * Class quản lý các thông tin của người dùng
+     * */
+    class userObj 
     {
         string chat_id = "";
         bool toggle_warning = false;
